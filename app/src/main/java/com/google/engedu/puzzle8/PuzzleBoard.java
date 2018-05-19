@@ -1,17 +1,4 @@
-/* Copyright 2016 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 package com.google.engedu.puzzle8;
 
@@ -31,16 +18,34 @@ public class PuzzleBoard {
             { 0, 1 }
     };
     private ArrayList<PuzzleTile> tiles;
+    PuzzleBoard previousBoard;
+    int steps;
 
     PuzzleBoard(Bitmap bitmap, int parentWidth) {
+
+        bitmap=Bitmap.createScaledBitmap(bitmap,parentWidth,parentWidth,false);
+        int widthOfTile=parentWidth/NUM_TILES;
+        tiles=new ArrayList<>();
+        for (int i = 0; i <NUM_TILES ; i++) {
+            for (int j = 0; j <NUM_TILES ; j++) {
+                Bitmap tile=Bitmap.createBitmap(bitmap,j*widthOfTile,i*widthOfTile,widthOfTile,widthOfTile);
+                tiles.add(new PuzzleTile(tile,NUM_TILES*i+j));
+            }
+        }
+        tiles.remove(NUM_TILES*NUM_TILES-1);
+        tiles.add(null);
+        steps=0;
+        previousBoard=null;
+
     }
 
     PuzzleBoard(PuzzleBoard otherBoard) {
+        steps=otherBoard.steps+1;
+        this.previousBoard =otherBoard;
         tiles = (ArrayList<PuzzleTile>) otherBoard.tiles.clone();
     }
 
     public void reset() {
-        // Nothing for now but you may have things to reset once you implement the solver.
     }
 
     @Override
@@ -108,11 +113,39 @@ public class PuzzleBoard {
     }
 
     public ArrayList<PuzzleBoard> neighbours() {
+        for (int k=0;k<tiles.size();k++) {
+            PuzzleTile tile=tiles.get(k);
+            if (tile==null){
+                ArrayList<PuzzleBoard> neighbours=new ArrayList<>();
+                for (int[] NEIGHBOUR_COORD : NEIGHBOUR_COORDS) {
+                    if (k / NUM_TILES + NEIGHBOUR_COORD[1] < NUM_TILES && k / NUM_TILES + NEIGHBOUR_COORD[1] >= 0 && k % NUM_TILES + NEIGHBOUR_COORD[0] < NUM_TILES && k % NUM_TILES + NEIGHBOUR_COORD[0] >= 0) {
+                        PuzzleBoard temp = new PuzzleBoard(this);
+                        temp.swapTiles(k, k + NEIGHBOUR_COORD[0] + NUM_TILES * NEIGHBOUR_COORD[1]);
+                        neighbours.add(temp);
+                    }
+                }
+                return neighbours;
+            }
+        }
         return null;
+
     }
 
     public int priority() {
-        return 0;
+        int manhattanDistance=0;
+        for (int i = 0; i <tiles.size() ; i++) {
+            if(tiles.get(i)!=null) {
+                int columnChange = Math.abs(i % NUM_TILES - tiles.get(i).getNumber() % NUM_TILES);
+                int rowChange = Math.abs(i / NUM_TILES - tiles.get(i).getNumber() / NUM_TILES);
+                manhattanDistance+= columnChange+rowChange;
+            }else {
+                int columnChange = Math.abs(i % NUM_TILES - (NUM_TILES*NUM_TILES-1) % NUM_TILES);
+                int rowChange = Math.abs(i / NUM_TILES - (NUM_TILES*NUM_TILES-1) / NUM_TILES);
+                manhattanDistance+=columnChange+rowChange;
+            }
+        }
+        return manhattanDistance+steps;
     }
 
-}
+    }
+

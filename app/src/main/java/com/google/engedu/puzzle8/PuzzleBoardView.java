@@ -1,17 +1,3 @@
-/* Copyright 2016 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package com.google.engedu.puzzle8;
 
@@ -24,6 +10,9 @@ import android.view.View;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.PriorityQueue;
 import java.util.Random;
 
 public class PuzzleBoardView extends View {
@@ -67,8 +56,11 @@ public class PuzzleBoardView extends View {
 
     public void shuffle() {
         if (animation == null && puzzleBoard != null) {
-            // Do something. Then:
             puzzleBoard.reset();
+            for (int i = 0; i <NUM_SHUFFLE_STEPS ; i++) {
+                int size=puzzleBoard.neighbours().size();
+                puzzleBoard=puzzleBoard.neighbours().get(random.nextInt(size));
+            }
             invalidate();
         }
     }
@@ -92,5 +84,30 @@ public class PuzzleBoardView extends View {
     }
 
     public void solve() {
+        PriorityQueue<PuzzleBoard> boardPriorityQueue=new PriorityQueue<>(1000, new Comparator<PuzzleBoard>() {
+            @Override
+            public int compare(PuzzleBoard lhs, PuzzleBoard rhs) {
+                return lhs.priority()-rhs.priority();
+            }
+        });
+        puzzleBoard.steps = 0; puzzleBoard.previousBoard = null;
+        boardPriorityQueue.add(puzzleBoard);
+        while (!boardPriorityQueue.isEmpty()){
+            PuzzleBoard topBoard=boardPriorityQueue.remove();
+            if (!topBoard.resolved()){
+                boardPriorityQueue.addAll(topBoard.neighbours());
+            }else {
+                boardPriorityQueue.clear();
+                ArrayList<PuzzleBoard> solutionBoards=new ArrayList<>();
+                while (topBoard.previousBoard!=null){
+                    solutionBoards.add(topBoard);
+                    topBoard=topBoard.previousBoard;
+                }
+                Collections.reverse(solutionBoards);
+                animation=solutionBoards;
+                invalidate();
+            }
+        }
+
     }
 }
